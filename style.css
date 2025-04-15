@@ -1,146 +1,188 @@
-/* style.css */
+/* Global Styles */
 body {
-  font-family: sans-serif;
-  background: #f2f2f2;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
   padding: 0;
+  background-color: #f5f5f5;
+  color: #333;
 }
+
 .container {
-  max-width: 800px;
+  width: 90%;
+  max-width: 1200px;
   margin: 20px auto;
-  background: #fff;
   padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
-form {
+
+/* Header Styles */
+header {
+  background: #2c3e50;
+  color: white;
+  padding: 15px 20px;
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+
+.logout-btn {
+  color: white;
+  text-decoration: none;
+  background: #e74c3c;
+  padding: 8px 15px;
+  border-radius: 4px;
+  transition: background 0.3s;
 }
+
+.logout-btn:hover {
+  background: #c0392b;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+button[type="submit"] {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s;
+}
+
+button[type="submit"]:hover {
+  background: #2980b9;
+}
+
+/* Table Styles */
 table {
   width: 100%;
   border-collapse: collapse;
+  margin: 20px 0;
 }
-table, th, td {
-  border: 1px solid #ccc;
-}
+
 th, td {
-  padding: 10px;
-  text-align: center;
-}
-button {
-  padding: 10px;
-  background: #007ab7;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-button:hover {
-  background: #005a8d;
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
 }
 
-/* alert begins here */
-.alert {
-  padding: 12px 20px;
-  margin: 10px auto;
-  border-radius: 8px;
-  width: fit-content;
+th {
+  background-color: #f8f9fa;
   font-weight: bold;
-  text-align: center;
 }
 
-.alert.success {
+tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Alert Styles */
+.alert {
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.success {
   background-color: #d4edda;
   color: #155724;
 }
 
-.alert.error {
+.error {
   background-color: #f8d7da;
   color: #721c24;
 }
 
-/* alert ends here  */
-
-
-@media (max-width: 600px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-  th, td {
-    font-size: 14px;
-  }
-}
-
-/* admin pages */
-.table-container {
-  overflow-x: auto;
-  margin: 20px 0;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-table th, table td {
-  padding: 12px;
+/* Tab Styles */
+.tabs {
+  display: flex;
+  margin-bottom: 20px;
   border-bottom: 1px solid #ddd;
 }
 
-@media (max-width: 768px) {
-  table, thead, tbody, th, td, tr {
-    display: block;
-  }
-
-  th {
-    background: #007ab7;
-    color: #fff;
-    text-align: center;
-  }
-
-  td {
-    text-align: right;
-    padding-left: 50%;
-    position: relative;
-  }
-
-  td::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 10px;
-    font-weight: bold;
-    text-align: left;
-  }
+.tab-button {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
 }
 
-  /* Add your CSS styles here if needed */
-  .alert {
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 4px;
-}
-.success {
-    background-color: #dff0d8;
-    color: #3c763d;
-}
-.error {
-    background-color: #f2dede;
-    color: #a94442;
-}
-.logout-btn {
-    float: right;
-    background: #d9534f;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    text-decoration: none;
+.tab-button.active {
+  border-bottom-color: #3498db;
+  font-weight: bold;
 }
 
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Login Styles */
+.login-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 30px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.login-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.success { color: green; }
+.error { color: red; }
+pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+
+.disabled-input {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.validation-message {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 5px;
+  display: none;
+}
+
+tr[data-criteria] input[type="number"] {
+  transition: all 0.3s ease;
+}

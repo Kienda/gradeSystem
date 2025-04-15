@@ -2,75 +2,120 @@
 session_start();
 require_once '../db/connect.php';
 
-if (!isset($_SESSION['judge_logged_in']) || $_SESSION['judge_logged_in'] !== true) {
+// Verify judge is logged in
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'judge') {
     header('Location: ../login/login.php');
     exit();
 }
 
+// Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../index.php?status=error');
+    header('Location: grade_form.php?status=error&message=Invalid+request+method');
     exit();
 }
+
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 try {
-    // Calculate total score
-    $total_score = 0;
-    for ($i = 1; $i <= 4; $i++) {
-        $total_score += (int)$_POST["criteria_{$i}_developing"] + (int)$_POST["criteria_{$i}_accomplished"];
+    // Validate required fields
+    $required = ['project_id', 'judge_id'];
+    foreach ($required as $field) {
+        if (empty($_POST[$field])) {
+            throw new Exception("Missing required field: $field");
+        }
     }
 
-    // Insert grades
+    // Calculate scores
+    $scores = [
+        'articulate' => 0,
+        'tools' => 0,
+        'presentation' => 0,
+        'teamwork' => 0
+    ];
+    $total = 0;
+
+    foreach ($_POST['criteria'] as $index => $criteria) {
+        // Use accomplished score if provided, otherwise developing score
+        $score = !empty($criteria['accomplished']) ? $criteria['accomplished'] : $criteria['developing'];
+        $score = max(0, min(15, (int)$score)); // Ensure score is 0-15
+
+        // Map to our score fields
+        switch ($index) {
+            case 0: $scores['articulate'] = $score; break;
+            case 1: $scores['tools'] = $score; break;
+            case 2: $scores['presentation'] = $score; break;
+            case 3: $scores['teamwork'] = $score; break;
+        }
+
+        $total += $score;
+    }
+
+    // Begin database transaction
+    $pdo->beginTransaction();
+
+    // Insert grade
     $stmt = $pdo->prepare("
         INSERT INTO grades (
-            group_number, group_members, project_title, judge_name,
-            criteria_1, criteria_2, criteria_3, criteria_4,
-            total_score, comments
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            project_id, judge_id,
+            articulate_requirements, tools_methods,
+            presentation, teamwork,
+            comments, total_score
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
     
-    $criteria1 = (int)$_POST['criteria_1_developing'] + (int)$_POST['criteria_1_accomplished'];
-    $criteria2 = (int)$_POST['criteria_2_developing'] + (int)$_POST['criteria_2_accomplished'];
-    $criteria3 = (int)$_POST['criteria_3_developing'] + (int)$_POST['criteria_3_accomplished'];
-    $criteria4 = (int)$_POST['criteria_4_developing'] + (int)$_POST['criteria_4_accomplished'];
-    
-    $stmt->execute([
-        $_POST['group_number'],
-        $_POST['group_members'],
-        $_POST['project_title'],
-        $_POST['judge_name'],
-        $criteria1,
-        $criteria2,
-        $criteria3,
-        $criteria4,
-        $total_score,
-        $_POST['comments']
+    $success = $stmt->execute([
+        $_POST['project_id'],
+        $_POST['judge_id'],
+        $scores['articulate'],
+        $scores['tools'],
+        $scores['presentation'],
+        $scores['teamwork'],
+        $_POST['comments'] ?? '',
+        $total
     ]);
 
-    // Update group averages
-    updateGroupAverage($_POST['group_number'], $pdo);
-    
-    header('Location: ../index.php?status=success');
-    exit();
-} catch (PDOException $e) {
-    header('Location: ../index.php?status=error');
-    exit();
-}
+    if (!$success) {
+        throw new Exception("Failed to insert grade record");
+    }
 
-function updateGroupAverage($group_number, $pdo) {
-    // Calculate new average
-    $stmt = $pdo->prepare("SELECT AVG(total_score) as avg_score, COUNT(*) as judge_count FROM grades WHERE group_number = ?");
-    $stmt->execute([$group_number]);
-    $result = $stmt->fetch();
-    
-    // Insert or update average
-    $stmt = $pdo->prepare("
-        INSERT INTO group_averages (group_number, average_score, judge_count) 
-        VALUES (?, ?, ?)
-        ON CONFLICT(group_number) DO UPDATE SET
-            average_score = excluded.average_score,
-            judge_count = excluded.judge_count,
-            last_updated = CURRENT_TIMESTAMP
+    // Update group average
+    $avgStmt = $pdo->prepare("
+        SELECT AVG(total_score) as avg_score, COUNT(*) as judge_count 
+        FROM grades 
+        WHERE project_id = ?
     ");
-    $stmt->execute([$group_number, $result['avg_score'], $result['judge_count']]);
+    $avgStmt->execute([$_POST['project_id']]);
+    $avgResult = $avgStmt->fetch();
+
+    $groupAvgStmt = $pdo->prepare("
+        INSERT OR REPLACE INTO group_averages (
+            project_id, average_score, judge_count
+        ) VALUES (?, ?, ?)
+    ");
+    $groupAvgStmt->execute([
+        $_POST['project_id'],
+        $avgResult['avg_score'] ?? 0,
+        $avgResult['judge_count'] ?? 0
+    ]);
+
+    // Commit transaction
+    $pdo->commit();
+
+    // Redirect with success message
+    header('Location: ../login/login.php');
+    
+
+} catch (PDOException $e) {
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    error_log("Database error: " . $e->getMessage());
+    header('Location: grade_form.php?status=error&message=' . urlencode("Database error occurred"));
+    exit();
+} catch (Exception $e) {
+    error_log("Submission error: " . $e->getMessage());
+    header('Location: grade_form.php?status=error&message=' . urlencode($e->getMessage()));
+    exit();
 }
-?>

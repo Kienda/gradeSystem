@@ -1,162 +1,82 @@
 <?php
 session_start();
+require_once '../db/connect.php';
 
-// Check if admin is logged in
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../login/login.php");
     exit();
 }
 
-require_once '../db/connect.php';
-
-// Get all users and grades
+// Initialize variables
 $users = [];
 $grades = [];
 $averages = [];
+$error = '';
+
 try {
-    // Check if created_at column exists
-    $createdAtExists = $pdo->query("SELECT 1 FROM pragma_table_info('users') WHERE name='created_at'")->fetchColumn();
+    // Check if tables exist
+    $tablesExist = $pdo->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN);
     
-    // Get users with conditional created_at
-    $usersQuery = $createdAtExists ?
-        "SELECT id, username, role, created_at FROM users ORDER BY created_at DESC" :
-        "SELECT id, username, role, NULL as created_at FROM users ORDER BY id DESC";
-    $users = $pdo->query($usersQuery)->fetchAll();
+    // Get users
+    if (in_array('users', $tablesExist)) {
+        $users = $pdo->query("SELECT * FROM users ORDER BY created_at DESC")->fetchAll();
+    } else {
+        $error = "Users table doesn't exist. Please run setup.";
+    }
     
-    // Get all grades
-    $grades = $pdo->query("SELECT * FROM grades ORDER BY id DESC")->fetchAll();
+    // Get grades with projects and users if tables exist
+    if (in_array('grades', $tablesExist) && in_array('projects', $tablesExist) && in_array('users', $tablesExist)) {
+        $grades = $pdo->query("
+        SELECT 
+            p.group_number AS group_num,
+            p.project_title,
+            COALESCE(u.username, 'Unknown Judge') AS judge_name,
+            g.total_score,
+            datetime(g.created_at) as created_at
+        FROM grades g
+        INNER JOIN projects p ON g.project_id = p.id
+        LEFT JOIN users u ON g.judge_id = u.id
+        ORDER BY g.created_at DESC
+    ")->fetchAll();
+    }
     
-    // Get group averages
-    $averages = $pdo->query("SELECT * FROM group_averages ORDER BY average_score DESC")->fetchAll();
+    // Get averages with projects if tables exist
+    if (in_array('group_averages', $tablesExist) && in_array('projects', $tablesExist)) {
+        // Replace the averages query with this:
+$averages = $pdo->query("
+SELECT 
+    p.group_number,
+    ROUND(ga.average_score, 2) as average_score,
+    ga.judge_count,
+    strftime('%Y-%m-%d %H:%M', ga.last_updated) as last_updated
+FROM group_averages ga
+JOIN projects p ON ga.project_id = p.id
+ORDER BY ga.average_score DESC
+")->fetchAll();
+$missingJudges = $pdo->query("
+    SELECT DISTINCT g.judge_id 
+    FROM grades g
+    LEFT JOIN users u ON g.judge_id = u.id
+    WHERE u.id IS NULL
+")->fetchAll();
+
+if (!empty($missingJudges)) {
+    echo "<div class='alert error'>Warning: Grades exist for non-existent judge IDs: ";
+    echo implode(', ', array_column($missingJudges, 'judge_id'));
+    echo "</div>";
+}
+    }
+
 } catch (PDOException $e) {
     $error = "Database error: " . $e->getMessage();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="../styles.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            width: 90%;
-            margin: 20px auto;
-        }
-        header {
-            background: #333;
-            color: #fff;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logout-btn {
-            color: #fff;
-            text-decoration: none;
-            background: #d9534f;
-            padding: 5px 10px;
-            border-radius: 4px;
-        }
-        .logout-btn:hover {
-            background: #c9302c;
-        }
-        .dashboard-content {
-            background: #fff;
-            padding: 20px;
-            margin-top: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-        }
-        th {
-            background-color: #f8f9fa;
-            position: sticky;
-            top: 0;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        .admin-badge {
-            background-color: #5cb85c;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-        .judge-badge {
-            background-color: #337ab7;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-        .alert {
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-        }
-        .error {
-            background-color: #f2dede;
-            color: #a94442;
-        }
-        .filter-container {
-            margin-bottom: 15px;
-        }
-        .filter-container input, .filter-container select {
-            padding: 8px;
-            margin-right: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .tab-container {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background: #f1f1f1;
-            margin-right: 5px;
-            border-radius: 5px 5px 0 0;
-        }
-        .tab.active {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-bottom: 1px solid #fff;
-            margin-bottom: -1px;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .table-container {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-    </style>
+    <link rel="stylesheet" href="../style.css">
 </head>
 <body>
     <header>
@@ -165,163 +85,120 @@ try {
     </header>
 
     <div class="container">
-        <div class="dashboard-content">
-            <div class="tab-container">
-                <div class="tab active" onclick="switchTab('users')">User Management</div>
-                <div class="tab" onclick="switchTab('grades')">Grade Submissions</div>
-                <div class="tab" onclick="switchTab('averages')">Group Averages</div>
-            </div>
-            
-            <?php if (isset($error)): ?>
-                <div class="alert error"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-            
-            <!-- Users Tab -->
-            <div id="users" class="tab-content active">
-                <div class="filter-container">
-                    <input type="text" id="userFilter" placeholder="Filter users..." oninput="filterTable('userFilter', 'usersTable')">
-                    <select id="roleFilter" onchange="filterTable('userFilter', 'usersTable')">
-                        <option value="">All Roles</option>
-                        <option value="admin">Admin</option>
-                        <option value="judge">Judge</option>
-                    </select>
-                </div>
-                <div class="table-container">
-                    <table id="usersTable">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Username</th>
-                                <th>Role</th>
-                                <th>Created At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($users as $user): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($user['id']); ?></td>
-                                <td><?php echo htmlspecialchars($user['username']); ?></td>
-                                <td>
-                                    <span class="<?php echo $user['role'] === 'admin' ? 'admin-badge' : 'judge-badge'; ?>">
-                                        <?php echo htmlspecialchars($user['role']); ?>
-                                    </span>
-                                </td>
-                                <td><?php echo htmlspecialchars($user['created_at']); ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Grades Tab -->
-            <div id="grades" class="tab-content">
-                <div class="filter-container">
-                    <input type="text" id="gradeFilter" placeholder="Filter by group number..." oninput="filterTable('gradeFilter', 'gradesTable')">
-                </div>
-                <div class="table-container">
-                    <table id="gradesTable">
-                        <thead>
-                            <tr>
-                                <th>Group Number</th>
-                                <th>Project Title</th>
-                                <th>Judge</th>
-                                <th>Total Score</th>
-                                <th>Date Submitted</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($grades as $grade): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($grade['group_number']); ?></td>
-                                <td><?php echo htmlspecialchars($grade['project_title']); ?></td>
-                                <td><?php echo htmlspecialchars($grade['judge_name']); ?></td>
-                                <td><?= htmlspecialchars($grade['total_score'] ?? 0) ?></td>
-                                <td><?= !empty($grade['created_at']) ? htmlspecialchars($grade['created_at']) : 'N/A' ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Averages Tab -->
-            <div id="averages" class="tab-content">
-                <div class="filter-container">
-                    <input type="text" id="averageFilter" placeholder="Filter by group number..." oninput="filterTable('averageFilter', 'averagesTable')">
-                </div>
-                <div class="table-container">
-                    <table id="averagesTable">
-                        <thead>
-                            <tr>
-                                <th>Group Number</th>
-                                <th>Average Score</th>
-                                <th># of Judges</th>
-                                <th>Last Updated</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($averages as $avg): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($avg['group_number']); ?></td>
-                                <td><?php echo number_format($avg['average_score'], 2); ?></td>
-                                <td><?php echo htmlspecialchars($avg['judge_count']); ?></td>
-                                <td><?php echo htmlspecialchars($avg['last_updated']); ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab('users')">Users</button>
+            <button class="tab-button" onclick="openTab('grades')">Grades</button>
+            <button class="tab-button" onclick="openTab('averages')">Averages</button>
         </div>
-    </div>
 
+        <div id="users" class="tab-content active">
+            <h3>User Management</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($users as $user): ?>
+                    <tr>
+                        <td><?= $user['id'] ?></td>
+                        <td><?= htmlspecialchars($user['username']) ?></td>
+                        <td><?= ucfirst($user['role']) ?></td>
+                        <td><?= $user['created_at'] ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="grades" class="tab-content">
+    <h3>Grade Submissions</h3>
+    
+    <?php
+    // Show missing judge warning if needed
+    if (!empty($missingJudges)): ?>
+        <div class="alert error">
+            Warning: Some grades were submitted by judges that no longer exist in the system.
+        </div>
+    <?php endif; ?>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Group</th>
+                <th>Project</th>
+                <th>Judge</th>
+                <th>Score</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (empty($grades)): ?>
+                <tr>
+                    <td colspan="5" class="no-data">
+                        No grades found in database.
+                    </td>
+                </tr>
+            <?php else: ?>
+                <?php foreach ($grades as $grade): ?>
+                <tr>
+                    <td><?= htmlspecialchars($grade['group_num']) ?></td>
+                    <td><?= htmlspecialchars($grade['project_title']) ?></td>
+                    <td><?= htmlspecialchars($grade['judge_name']) ?></td>
+                    <td><?= $grade['total_score'] ?></td>
+                    <td><?= htmlspecialchars($grade['created_at']) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+ 
+<div id="averages" class="tab-content">
+    <h3>Group Averages</h3>
+    <?php if (empty($averages)): ?>
+        <div class="alert info">
+            No averages calculated yet. Grades need to be submitted first.
+        </div>
+    <?php else: ?>
+        <table>
+            <thead>
+                <tr>
+                    <th>Group</th>
+                    <th>Average Score</th>
+                    <th># Judges</th>
+                    <th>Last Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($averages as $avg): ?>
+                <tr>
+                    <td><?= htmlspecialchars($avg['group_number'] ?? 'N/A') ?></td>
+                    <td><?= number_format($avg['average_score'] ?? 0, 2) ?></td>
+                    <td><?= $avg['judge_count'] ?? 0 ?></td>
+                    <td><?= !empty($avg['last_updated']) ? htmlspecialchars($avg['last_updated']) : 'N/A' ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+</div>
     <script>
-        // Tab switching
-        function switchTab(tabId) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
+        function openTab(tabName) {
+            const tabContents = document.getElementsByClassName('tab-content');
+            const tabButtons = document.getElementsByClassName('tab-button');
             
-            // Deactivate all tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+                tabButtons[i].classList.remove('active');
+            }
             
-            // Activate selected tab
-            document.getElementById(tabId).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
             event.currentTarget.classList.add('active');
-        }
-        
-        // Table filtering
-        function filterTable(inputId, tableId) {
-            const filter = document.getElementById(inputId).value.toLowerCase();
-            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
-            const roleFilter = inputId === 'userFilter' ? document.getElementById('roleFilter').value.toLowerCase() : '';
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                let text = '';
-                let roleMatch = true;
-                
-                // Combine all cell text for searching
-                cells.forEach((cell, index) => {
-                    // Skip role column for text filtering
-                    if (index !== 2) {
-                        text += cell.textContent.toLowerCase() + ' ';
-                    }
-                    
-                    // Special handling for role filtering
-                    if (inputId === 'userFilter' && index === 2 && roleFilter) {
-                        const role = cell.querySelector('span').textContent.toLowerCase();
-                        roleMatch = role.includes(roleFilter);
-                    }
-                });
-                
-                const match = text.includes(filter) && roleMatch;
-                row.style.display = match ? '' : 'none';
-            });
         }
     </script>
 </body>

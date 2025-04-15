@@ -9,7 +9,8 @@ $status = $_GET['status'] ?? '';
 if ($status === 'success') {
     echo '<div class="alert success">Grades submitted successfully!</div>';
 } elseif ($status === 'error') {
-    echo '<div class="alert error">There was an error submitting the grades.</div>';
+    $message = $_GET['message'] ?? 'There was an error submitting the grades.';
+    echo '<div class="alert error">'.htmlspecialchars(urldecode($message)).'</div>';
 }
 ?> 
 <!DOCTYPE html>
@@ -18,13 +19,32 @@ if ($status === 'success') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Computer Science Project Grading</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/studentSuccessGrade/style.css">
 </head>
 <body>
     <div class="container">
-        <a href="./login/logout.php" class="logout-btn">Logout</a>
-        <form action="./dashboard/admin.php" id="gradeForm" method="POST">
+        <a href="/studentSuccessGrade/login/logout.php" class="logout-btn">Logout</a>
+        <form action="/studentSuccessGrade/process/submit_grades.php" id="gradeForm" method="POST">
             <h2>Grading System</h2>
+            
+            <!-- Add this required project selection field -->
+            <div class="form-group">
+                <label>Select Project:
+                    <select name="project_id" required>
+                        <option value="">-- Select Project --</option>
+                        <?php 
+                        // Assuming $projects is available from your database
+                        $stmt = $pdo->query("SELECT id, group_number, project_title FROM projects");
+                        while ($project = $stmt->fetch()): ?>
+                        <option value="<?= $project['id'] ?>">
+                            Group <?= htmlspecialchars($project['group_number']) ?> - 
+                            <?= htmlspecialchars($project['project_title']) ?>
+                        </option>
+                        <?php endwhile; ?>
+                    </select>
+                </label>
+            </div>
+
             <div class="grid">
                 <label>Group Members: <input type="text" name="group_members" required></label>
                 <label>Group Number: <input type="text" name="group_number" required></label>
@@ -54,12 +74,13 @@ if ($status === 'success') {
                 </tr>
             </table>
 
+            <input type="hidden" name="judge_id" value="<?= $_SESSION['user_id'] ?>">
             <label>Judge's Name: <input type="text" name="judge_name" value="<?= htmlspecialchars($_SESSION['judge_name'] ?? '') ?>" readonly></label>
             <label>Comments: <textarea name="comments"></textarea></label>
 
             <button type="submit">Submit Grades</button>
         </form>
     </div>
-    <script src="script.js"> </script>
+    <script src="/studentSuccessGrade/script.js"></script>
 </body>
 </html>
