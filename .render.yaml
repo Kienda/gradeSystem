@@ -3,7 +3,6 @@ services:
     name: student-success-grade
     env: docker
     plan: free
-    branch: main # or master
-    rootDir: . # root because Dockerfile is at repo root
-    dockerfilePath: Dockerfile
+    branch: main
+    rootDir: .
     autoDeploy: true
