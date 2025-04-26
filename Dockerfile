@@ -5,7 +5,7 @@ FROM php:8.2-apache
 RUN a2enmod rewrite
 
 # Copy your app files into the container
-COPY studentSuccessGrade/ /var/www/html/
+COPY . /var/www/html/
 
 # Set working directory
 WORKDIR /var/www/html/
