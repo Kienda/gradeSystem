@@ -11,4 +11,4 @@ try {
 } catch (Exception $e) {
     die('Database error: ' . $e->getMessage());
 }
-?>
+
