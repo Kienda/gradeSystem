@@ -115,7 +115,7 @@ if (!empty($missingJudges)) {
             </table>
         </div>
 
-        <div id="grades" class="tab-content">
+    <div id="grades" class="tab-content">
     <h3>Grade Submissions</h3>
     
     <?php
