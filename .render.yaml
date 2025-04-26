@@ -1,7 +1,9 @@
 services:
   - type: web
-    name: your-app-name
-    env: php
+    name: student-success-grade
+    env: docker
     plan: free
-    buildCommand: ""
-    startCommand: ""
+    branch: main # or master
+    rootDir: . # root because Dockerfile is at repo root
+    dockerfilePath: Dockerfile
+    autoDeploy: true
