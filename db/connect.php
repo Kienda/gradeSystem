@@ -1,4 +1,3 @@
-<!-- /* db/connect.php */ -->
 <?php
 $dbPath = __DIR__ . '/database.sqlite';
 
