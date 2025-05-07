@@ -19,12 +19,12 @@ if ($status === 'success') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Computer Science Project Grading</title>
-    <link rel="stylesheet" href="/studentSuccessGrade/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <a href="/studentSuccessGrade/login/logout.php" class="logout-btn">Logout</a>
-        <form action="/studentSuccessGrade/process/submit_grades.php" id="gradeForm" method="POST">
+        <a href="login/logout.php" class="logout-btn">Logout</a>
+        <form action="process/submit_grades.php" id="gradeForm" method="POST">
             <h2>Grading System</h2>
             
             <!-- Add this required project selection field -->
@@ -81,6 +81,6 @@ if ($status === 'success') {
             <button type="submit">Submit Grades</button>
         </form>
     </div>
-    <script src="/studentSuccessGrade/script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
