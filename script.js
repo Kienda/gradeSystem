@@ -10,12 +10,10 @@ function initScoringSystem() {
     const acc = row.querySelector('.accomplished');
 
     if (dev && acc) {
-      // Initialize row state
       updateInputStates(dev, acc);
 
-      // Add event listeners
-      dev.addEventListener('input', () => handleScoreInput(dev, acc));
-      acc.addEventListener('input', () => handleScoreInput(acc, dev));
+      dev.addEventListener('click', () => activateInput(dev, acc));
+      acc.addEventListener('click', () => activateInput(acc, dev));
 
       // Initialize calculations
       calculateRowTotal(dev);
@@ -23,6 +21,13 @@ function initScoringSystem() {
   });
 
   calculateGrandTotal();
+}
+
+function activateInput(activeInput, inactiveInput) {
+  activeInput.readOnly = false;
+  inactiveInput.readOnly = true;
+  inactiveInput.value = '';
+  calculateRowTotal(activeInput);
 }
 
 function handleScoreInput(currentInput, oppositeInput) {

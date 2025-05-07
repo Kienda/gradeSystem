@@ -183,6 +183,12 @@ pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
   display: none;
 }
 
-tr[data-criteria] input[type="number"] {
-  transition: all 0.3s ease;
+.disabled-input {
+  background-color: #f5f5f5;
+  color: #999;
+}
+.validation-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
 }

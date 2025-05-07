@@ -7,14 +7,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
-// Initialize variables
 $users = [];
 $grades = [];
 $averages = [];
 $error = '';
 
 try {
-    // Check if tables exist
+    
     $tablesExist = $pdo->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN);
     
     // Get users
@@ -42,7 +41,6 @@ try {
     
     // Get averages with projects if tables exist
     if (in_array('group_averages', $tablesExist) && in_array('projects', $tablesExist)) {
-        // Replace the averages query with this:
 $averages = $pdo->query("
 SELECT 
     p.group_number,

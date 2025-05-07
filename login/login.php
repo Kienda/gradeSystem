@@ -29,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     exit();
                 } elseif ($user["role"] === "judge") {
                     $_SESSION["judge_logged_in"] = true;
-                    $_SESSION["judge_name"] = $user["username"]; // Set judge_name for index.php
+                    $_SESSION["judge_name"] = $user["username"]; 
                     header("Location: ../index.php");
                     exit();
                 } else {

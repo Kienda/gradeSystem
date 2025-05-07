@@ -19,7 +19,7 @@ if ($status === 'success') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Computer Science Project Grading</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/studentSuccessGrade/style.css">
 </head>
 <body>
     <div class="container">
@@ -27,13 +27,11 @@ if ($status === 'success') {
         <form action="process/submit_grades.php" id="gradeForm" method="POST">
             <h2>Grading System</h2>
             
-            <!-- Add this required project selection field -->
             <div class="form-group">
                 <label>Select Project:
                     <select name="project_id" required>
                         <option value="">-- Select Project --</option>
                         <?php 
-                        // Assuming $projects is available from your database
                         $stmt = $pdo->query("SELECT id, group_number, project_title FROM projects");
                         while ($project = $stmt->fetch()): ?>
                         <option value="<?= $project['id'] ?>">
