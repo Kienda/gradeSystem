@@ -75,7 +75,7 @@ if ($status === 'success') {
             <input type="hidden" name="judge_id" value="<?= $_SESSION['user_id'] ?>">
             <label>Judge's Name: <input type="text" name="judge_name" value="<?= htmlspecialchars($_SESSION['judge_name'] ?? '') ?>" readonly></label>
             <label>Comments: <textarea name="comments"></textarea></label>
-
+             <!-- submut butoon -->
             <button type="submit">Submit Grades</button>
         </form>
     </div>
