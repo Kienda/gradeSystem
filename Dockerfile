@@ -1,14 +1,21 @@
 # Use an official PHP image with Apache server
 FROM php:8.2-apache
 
-# Enable Apache mod_rewrite (useful if you later add URL rewrites)
+# Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
-# Copy your app files into the container
-COPY . /var/www/html/
+# Install PDO SQLite extension
+RUN docker-php-ext-install pdo pdo_sqlite
 
 # Set working directory
-WORKDIR /var/www/html/
+WORKDIR /var/www/html
 
-# Expose port 80 (the web port)
+# Copy all app files into the container
+COPY . .
+
+# Fix permissions for SQLite and other files
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html
+
+# Expose port 80 for web access
 EXPOSE 80
