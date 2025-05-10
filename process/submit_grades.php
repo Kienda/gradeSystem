@@ -39,7 +39,7 @@ try {
     foreach ($_POST['criteria'] as $index => $criteria) {
         // Use accomplished score if provided, otherwise developing score
         $score = !empty($criteria['accomplished']) ? $criteria['accomplished'] : $criteria['developing'];
-        $score = max(0, min(15, (int)$score)); // Ensure score is 0-15
+        $score = max(0, min(15, (int)$score)); 
 
         // Map to our score fields
         switch ($index) {
