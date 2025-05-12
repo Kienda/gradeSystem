@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'judge') {
 
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: grade_form.php?status=error&message=Invalid+request+method');
+    header('Location: submit_grades.php?status=error&message=Invalid+request+method');
     exit();
 }
 
